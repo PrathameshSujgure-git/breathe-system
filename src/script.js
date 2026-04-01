@@ -4,6 +4,91 @@ import { initBlob } from "./blob.js";
 const canvas = document.querySelector("canvas.webgl");
 const blob = initBlob(canvas);
 
+// ── Sound Engine (Web Audio API) ──
+let audioCtx = null;
+let soundEnabled = false;
+let activeOscillators = [];
+
+function ensureAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === "suspended") audioCtx.resume();
+}
+
+function stopAllSound() {
+  activeOscillators.forEach(({ osc, gain }) => {
+    try {
+      gain.gain.cancelScheduledValues(audioCtx.currentTime);
+      gain.gain.setValueAtTime(gain.gain.value, audioCtx.currentTime);
+      gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+      setTimeout(() => { try { osc.stop(); } catch(e) {} }, 400);
+    } catch(e) {}
+  });
+  activeOscillators = [];
+}
+
+function createOsc(freq, type, vol) {
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.value = freq;
+  gain.gain.value = 0;
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  activeOscillators.push({ osc, gain });
+  return { osc, gain };
+}
+
+function playPhaseSound(phaseIndex) {
+  if (!soundEnabled || !audioCtx) return;
+  stopAllSound();
+
+  const now = audioCtx.currentTime;
+
+  if (phaseIndex === 0) {
+    // Inhale: gentle rising tone 174 -> 285 Hz, 4s
+    const { osc, gain } = createOsc(174, "sine", 0);
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.12, now + 0.5);
+    osc.frequency.setValueAtTime(174, now);
+    osc.frequency.linearRampToValueAtTime(285, now + 4);
+    // Soft harmonic layer
+    const h = createOsc(348, "sine", 0);
+    h.gain.gain.setValueAtTime(0, now);
+    h.gain.gain.linearRampToValueAtTime(0.04, now + 1);
+    h.osc.frequency.setValueAtTime(348, now);
+    h.osc.frequency.linearRampToValueAtTime(570, now + 4);
+  } else if (phaseIndex === 1) {
+    // Hold: steady 285 Hz with subtle LFO pulse, 2s
+    const { osc, gain } = createOsc(285, "sine", 0);
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.1, now + 0.3);
+    // Subtle amplitude modulation
+    const lfo = audioCtx.createOscillator();
+    const lfoGain = audioCtx.createGain();
+    lfo.frequency.value = 0.5;
+    lfoGain.gain.value = 0.02;
+    lfo.connect(lfoGain);
+    lfoGain.connect(gain.gain);
+    lfo.start();
+    activeOscillators.push({ osc: lfo, gain: lfoGain });
+  } else {
+    // Exhale: descending 285 -> 136.1 Hz (OM frequency), 6s, fade out
+    const { osc, gain } = createOsc(285, "sine", 0);
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.1, now + 0.3);
+    gain.gain.linearRampToValueAtTime(0.02, now + 5.5);
+    gain.gain.linearRampToValueAtTime(0, now + 6);
+    osc.frequency.setValueAtTime(285, now);
+    osc.frequency.exponentialRampToValueAtTime(136.1, now + 6);
+    // Low harmonic
+    const h = createOsc(142, "triangle", 0);
+    h.gain.gain.setValueAtTime(0, now);
+    h.gain.gain.linearRampToValueAtTime(0.03, now + 0.5);
+    h.gain.gain.linearRampToValueAtTime(0, now + 5.5);
+  }
+}
+
 // ── Visual Themes ──
 const THEMES = [
   {
@@ -59,7 +144,6 @@ THEMES.forEach((t, i) => {
   el.addEventListener("click", () => selectTheme(i));
   picker.appendChild(el);
 });
-// Plain (no blob) swatch
 const plainSwatch = document.createElement("div");
 plainSwatch.className = "swatch swatch-plain";
 plainSwatch.title = "Plain";
@@ -70,7 +154,6 @@ function selectTheme(index) {
   currentThemeIndex = index;
   isPlainMode = false;
   canvas.classList.remove("no-blob");
-  // Update swatch active states
   picker.querySelectorAll(".swatch").forEach((s, i) => {
     s.classList.toggle("active", i === index);
   });
@@ -122,6 +205,8 @@ const btnTheme = document.getElementById("theme-toggle");
 const themeIcon = document.getElementById("theme-icon");
 const btnFs = document.getElementById("fs-toggle");
 const btnPalette = document.getElementById("palette-toggle");
+const btnSound = document.getElementById("sound-toggle");
+const soundIcon = btnSound.querySelector("svg");
 
 // ── Dark mode ──
 let isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -152,12 +237,30 @@ btnFs.addEventListener("click", () => {
   }
 });
 
+// ── Sound toggle ──
+btnSound.addEventListener("click", () => {
+  soundEnabled = !soundEnabled;
+  btnSound.classList.toggle("active", soundEnabled);
+  // Update icon: volume-2 when on, volume-x when off
+  soundIcon.innerHTML = soundEnabled
+    ? '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>'
+    : '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>';
+  if (soundEnabled) {
+    ensureAudioCtx();
+    // If running, start sound for current phase
+    if (state.running && !state.paused && !state.completed) {
+      playPhaseSound(state.phaseIndex);
+    }
+  } else {
+    stopAllSound();
+  }
+});
+
 // ── Palette toggle ──
 btnPalette.addEventListener("click", () => {
   pickerVisible = !pickerVisible;
   picker.classList.toggle("show", pickerVisible);
 });
-// Close picker on click outside
 document.addEventListener("click", (e) => {
   if (pickerVisible && !picker.contains(e.target) && e.target !== btnPalette && !btnPalette.contains(e.target)) {
     pickerVisible = false;
@@ -187,6 +290,7 @@ function showIdle() {
 function showCompletion() {
   elSession.classList.remove("show");
   elControls.classList.remove("show");
+  stopAllSound();
   setTimeout(() => elCompletion.classList.add("show"), 500);
 }
 
@@ -242,13 +346,15 @@ function updateUI() {
     }, 180);
     prevPhase = state.phaseIndex;
     updateProtocol(state.phaseIndex);
+    playPhaseSound(state.phaseIndex);
   }
 
   const phaseNum = String(state.phaseIndex + 1).padStart(2, "0");
   elMeta.textContent = `Phase ${phaseNum} \u2014 ${state.round} of ${TOTAL_ROUNDS}`;
 
+  // No leading zero on timer
   const remaining = Math.ceil(phase.duration - state.phaseElapsed);
-  elTimer.textContent = String(remaining).padStart(2, "0");
+  elTimer.textContent = String(remaining);
 
   const totalElapsed =
     (state.round - 1) * CYCLE +
@@ -267,10 +373,12 @@ function resetState() {
   state.phaseElapsed = 0;
   state.lastTimestamp = null;
   prevPhase = -1;
+  stopAllSound();
 }
 
 // ── Events ──
 btnStart.addEventListener("click", () => {
+  if (soundEnabled) ensureAudioCtx();
   resetState();
   state.running = true;
   showSession();
@@ -281,11 +389,13 @@ btnPause.addEventListener("click", () => {
   if (state.paused) {
     pauseIcon.innerHTML = '<polygon points="8,5 19,12 8,19"/>';
     btnPause.title = "Resume";
+    stopAllSound();
   } else {
     pauseIcon.innerHTML =
       '<rect x="7" y="5" width="3" height="14" rx="1"/><rect x="14" y="5" width="3" height="14" rx="1"/>';
     btnPause.title = "Pause";
     state.lastTimestamp = null;
+    playPhaseSound(state.phaseIndex);
   }
 });
 
@@ -297,6 +407,7 @@ btnStop.addEventListener("click", () => {
 });
 
 elCompletion.addEventListener("click", () => {
+  if (soundEnabled) ensureAudioCtx();
   resetState();
   state.running = true;
   elCompletion.classList.remove("show");

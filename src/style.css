@@ -13,14 +13,14 @@
 }
 html.dark {
   --bg: #1A1A18;
-  --fg: #E8E6E1;
-  --fg-soft: #7A8A7F;
-  --fg-faint: #555550;
-  --fg-ghost: rgba(232,230,225,0.06);
-  --timer-color: rgba(232,230,225,0.12);
-  --btn-bg: rgba(255,255,255,0.08);
-  --btn-shadow: 0 1px 6px rgba(0,0,0,0.3), 0 0 1px rgba(0,0,0,0.2);
-  --btn-shadow-hover: 0 2px 10px rgba(0,0,0,0.4), 0 0 1px rgba(0,0,0,0.3);
+  --fg: #D8D5CF;
+  --fg-soft: #8A9A8F;
+  --fg-faint: #605E58;
+  --fg-ghost: rgba(216,213,207,0.08);
+  --timer-color: rgba(216,213,207,0.15);
+  --btn-bg: rgba(255,255,255,0.07);
+  --btn-shadow: 0 1px 6px rgba(0,0,0,0.4), 0 0 1px rgba(0,0,0,0.25);
+  --btn-shadow-hover: 0 2px 10px rgba(0,0,0,0.5), 0 0 1px rgba(0,0,0,0.3);
 }
 
 body {
@@ -413,3 +413,20 @@ footer {
   padding: 0;
 }
 #palette-toggle:hover { opacity: 0.9; }
+
+/* Sound toggle */
+#sound-toggle {
+  background: none;
+  border: none;
+  color: var(--fg);
+  width: 28px; height: 28px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.3;
+  transition: opacity 0.3s;
+  padding: 0;
+}
+#sound-toggle:hover { opacity: 0.7; }
+#sound-toggle.active { opacity: 0.6; }
