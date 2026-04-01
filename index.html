@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Breathe</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html {
+      --bg: #f4f1eb;
+      --fg: #2a2a2a;
+      --fg-muted: #999;
+      --accent: #5a8a7a;
+      --btn-bg: rgba(0,0,0,0.06);
+      --btn-hover: rgba(0,0,0,0.12);
+    }
+    html.dark {
+      --bg: #0a0a0a;
+      --fg: #e8e8e8;
+      --fg-muted: #666;
+      --accent: #7abfa8;
+      --btn-bg: rgba(255,255,255,0.08);
+      --btn-hover: rgba(255,255,255,0.15);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      overflow: hidden;
+      height: 100dvh;
+      width: 100vw;
+    }
+
+    canvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 0;
+    }
+
+    #ui {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    #ui > * { pointer-events: auto; }
+
+    #top-bar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      display: flex;
+      justify-content: space-between;
+      padding: 1rem 1.25rem;
+      z-index: 2;
+    }
+
+    .icon-btn {
+      background: var(--btn-bg);
+      border: none;
+      color: var(--fg);
+      width: 40px; height: 40px;
+      border-radius: 12px;
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      transition: background 0.2s;
+    }
+    .icon-btn:hover { background: var(--btn-hover); }
+
+    #center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      text-align: center;
+      padding: 0 1rem;
+    }
+
+    #title {
+      font-size: clamp(1.2rem, 3vw, 1.6rem);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      transition: opacity 0.6s;
+    }
+
+    #subtitle {
+      font-size: clamp(0.8rem, 2vw, 0.95rem);
+      color: var(--fg-muted);
+      max-width: 280px;
+      line-height: 1.5;
+      transition: opacity 0.6s;
+    }
+
+    #phase {
+      font-size: clamp(1.8rem, 6vw, 3.2rem);
+      font-weight: 300;
+      letter-spacing: 0.04em;
+      opacity: 0;
+      transition: opacity 0.5s;
+      min-height: 1.2em;
+    }
+
+    #timer {
+      font-size: clamp(1rem, 3vw, 1.4rem);
+      font-weight: 300;
+      color: var(--fg-muted);
+      opacity: 0;
+      transition: opacity 0.5s;
+      font-variant-numeric: tabular-nums;
+    }
+
+    #round {
+      font-size: clamp(0.75rem, 2vw, 0.85rem);
+      color: var(--fg-muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      opacity: 0;
+      transition: opacity 0.5s;
+      margin-top: 0.25rem;
+    }
+
+    #controls {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+    }
+
+    .btn {
+      background: var(--btn-bg);
+      border: none;
+      color: var(--fg);
+      padding: 0.65rem 1.6rem;
+      border-radius: 50px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      transition: background 0.2s, opacity 0.3s, transform 0.2s;
+      letter-spacing: 0.02em;
+    }
+    .btn:hover { background: var(--btn-hover); transform: scale(1.03); }
+    .btn:active { transform: scale(0.97); }
+    .btn.primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn.primary:hover { filter: brightness(1.1); }
+    .btn.hidden { display: none; }
+
+    #completion {
+      opacity: 0;
+      transition: opacity 0.8s;
+      text-align: center;
+      pointer-events: none;
+    }
+    #completion.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    #completion p {
+      font-size: clamp(0.85rem, 2vw, 1rem);
+      color: var(--fg-muted);
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gl"></canvas>
+
+  <div id="ui">
+    <div id="top-bar">
+      <button class="icon-btn" id="theme-toggle" title="Toggle theme" aria-label="Toggle theme"></button>
+      <button class="icon-btn" id="fs-toggle" title="Fullscreen" aria-label="Toggle fullscreen"></button>
+    </div>
+
+    <div id="center">
+      <div id="title">Nervous System Reset</div>
+      <div id="subtitle">4-2-6 breathing to calm your nervous system</div>
+      <div id="phase"></div>
+      <div id="timer"></div>
+      <div id="round"></div>
+      <div id="completion">
+        <div id="phase"></div>
+        <p>Take a moment before returning.</p>
+      </div>
+      <div id="controls">
+        <button class="btn primary" id="btn-start">Begin</button>
+        <button class="btn hidden" id="btn-pause">Pause</button>
+        <button class="btn hidden" id="btn-reset">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ── WebGL Setup ──
+    const canvas = document.getElementById('gl');
+    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+
+    const vsSource = `
+      attribute vec2 a_pos;
+      void main() { gl_Position = vec4(a_pos, 0.0, 1.0); }
+    `;
+
+    const fsSource = `
+      precision highp float;
+      uniform float u_time;
+      uniform float u_breath;
+      uniform vec2 u_resolution;
+      uniform float u_darkMode;
+
+      // Simple hash noise
+      float hash(vec2 p) {
+        return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+      }
+
+      // Smooth noise
+      float noise(vec2 p) {
+        vec2 i = floor(p);
+        vec2 f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        float a = hash(i);
+        float b = hash(i + vec2(1.0, 0.0));
+        float c = hash(i + vec2(0.0, 1.0));
+        float d = hash(i + vec2(1.0, 1.0));
+        return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+      }
+
+      // FBM
+      float fbm(vec2 p) {
+        float v = 0.0;
+        float a = 0.5;
+        vec2 shift = vec2(100.0);
+        for (int i = 0; i < 4; i++) {
+          v += a * noise(p);
+          p = p * 2.0 + shift;
+          a *= 0.5;
+        }
+        return v;
+      }
+
+      void main() {
+        vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution) / min(u_resolution.x, u_resolution.y);
+
+        // Background color
+        vec3 bgLight = vec3(0.957, 0.945, 0.922);  // #f4f1eb
+        vec3 bgDark = vec3(0.04, 0.04, 0.04);       // #0a0a0a
+        vec3 bg = mix(bgLight, bgDark, u_darkMode);
+
+        // Blob
+        float angle = atan(uv.y, uv.x);
+        float dist = length(uv);
+
+        // Base radius breathes
+        float baseRadius = 0.18 + 0.14 * u_breath;
+
+        // Organic distortion layers
+        float t = u_time * 0.4;
+        float distortion =
+          0.035 * sin(angle * 3.0 + t * 1.1 + fbm(uv * 2.0 + t * 0.3)) +
+          0.025 * sin(angle * 5.0 - t * 0.8 + fbm(uv * 3.0 - t * 0.2)) +
+          0.018 * sin(angle * 7.0 + t * 0.6) +
+          0.012 * sin(angle * 11.0 - t * 1.3);
+
+        // Distortion intensity scales with breath
+        distortion *= (0.4 + 0.6 * u_breath);
+
+        float radius = baseRadius + distortion;
+        float d = dist - radius;
+
+        // Color: shifts with breath
+        vec3 colorExhale = mix(vec3(0.4, 0.55, 0.65), vec3(0.35, 0.5, 0.6), u_darkMode);
+        vec3 colorInhale = mix(vec3(0.35, 0.68, 0.58), vec3(0.4, 0.75, 0.62), u_darkMode);
+        vec3 blobColor = mix(colorExhale, colorInhale, u_breath);
+
+        // Inner shimmer
+        float shimmer = fbm(uv * 4.0 + u_time * 0.2) * 0.15;
+        blobColor += shimmer * u_breath;
+
+        // Soft edge
+        float blob = 1.0 - smoothstep(-0.01, 0.03, d);
+
+        // Glow
+        float glow = exp(-4.0 * max(d, 0.0)) * 0.35;
+        float outerGlow = exp(-1.5 * max(d, 0.0)) * 0.08;
+
+        // Combine
+        vec3 color = bg;
+        color += blobColor * glow;
+        color += blobColor * 0.6 * outerGlow;
+        color = mix(color, blobColor, blob);
+
+        // Subtle grain
+        float grain = (hash(gl_FragCoord.xy + u_time) - 0.5) * 0.02;
+        color += grain;
+
+        gl_FragColor = vec4(color, 1.0);
+      }
+    `;
+
+    function createShader(type, source) {
+      const s = gl.createShader(type);
+      gl.shaderSource(s, source);
+      gl.compileShader(s);
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+        console.error(gl.getShaderInfoLog(s));
+        gl.deleteShader(s);
+        return null;
+      }
+      return s;
+    }
+
+    const vs = createShader(gl.VERTEX_SHADER, vsSource);
+    const fs = createShader(gl.FRAGMENT_SHADER, fsSource);
+    const program = gl.createProgram();
+    gl.attachShader(program, vs);
+    gl.attachShader(program, fs);
+    gl.linkProgram(program);
+    gl.useProgram(program);
+
+    // Fullscreen quad
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+    const aPos = gl.getAttribLocation(program, 'a_pos');
+    gl.enableVertexAttribArray(aPos);
+    gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+    // Uniforms
+    const uTime = gl.getUniformLocation(program, 'u_time');
+    const uBreath = gl.getUniformLocation(program, 'u_breath');
+    const uRes = gl.getUniformLocation(program, 'u_resolution');
+    const uDark = gl.getUniformLocation(program, 'u_darkMode');
+
+    function resize() {
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = window.innerWidth * dpr;
+      canvas.height = window.innerHeight * dpr;
+      gl.viewport(0, 0, canvas.width, canvas.height);
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // ── Breathing State Machine ──
+    const PHASES = [
+      { name: 'Inhale', duration: 4 },
+      { name: 'Hold', duration: 2 },
+      { name: 'Exhale', duration: 6 },
+    ];
+    const TOTAL_ROUNDS = 10;
+
+    const state = {
+      running: false,
+      paused: false,
+      completed: false,
+      round: 1,
+      phaseIndex: 0,
+      phaseElapsed: 0,
+      breathValue: 0, // 0..1 actual shader value
+      lastTimestamp: null,
+    };
+
+    function smoothstep(a, b, t) {
+      t = Math.max(0, Math.min(1, (t - a) / (b - a)));
+      return t * t * (3 - 2 * t);
+    }
+
+    function tick(dt) {
+      if (!state.running || state.paused || state.completed) return;
+
+      state.phaseElapsed += dt;
+      const phase = PHASES[state.phaseIndex];
+
+      if (state.phaseElapsed >= phase.duration) {
+        state.phaseElapsed -= phase.duration;
+        state.phaseIndex++;
+
+        if (state.phaseIndex >= PHASES.length) {
+          state.phaseIndex = 0;
+          state.round++;
+
+          if (state.round > TOTAL_ROUNDS) {
+            state.completed = true;
+            return;
+          }
+        }
+      }
+
+      // Compute breath value
+      const p = PHASES[state.phaseIndex];
+      const t = state.phaseElapsed / p.duration;
+
+      if (state.phaseIndex === 0) {
+        // Inhale: 0 -> 1
+        state.breathValue = smoothstep(0, 1, t);
+      } else if (state.phaseIndex === 1) {
+        // Hold: stay at 1
+        state.breathValue = 1;
+      } else {
+        // Exhale: 1 -> 0
+        state.breathValue = 1 - smoothstep(0, 1, t);
+      }
+    }
+
+    // ── UI ──
+    const elTitle = document.getElementById('title');
+    const elSubtitle = document.getElementById('subtitle');
+    const elPhase = document.querySelector('#center > #phase');
+    const elTimer = document.getElementById('timer');
+    const elRound = document.getElementById('round');
+    const elCompletion = document.getElementById('completion');
+    const btnStart = document.getElementById('btn-start');
+    const btnPause = document.getElementById('btn-pause');
+    const btnReset = document.getElementById('btn-reset');
+    const btnTheme = document.getElementById('theme-toggle');
+    const btnFs = document.getElementById('fs-toggle');
+
+    let isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (isDark) document.documentElement.classList.add('dark');
+    updateThemeIcon();
+
+    function updateThemeIcon() {
+      btnTheme.textContent = isDark ? '\u2600' : '\u263E';
+    }
+
+    btnTheme.addEventListener('click', () => {
+      isDark = !isDark;
+      document.documentElement.classList.toggle('dark', isDark);
+      updateThemeIcon();
+    });
+
+    btnFs.textContent = '\u26F6';
+    btnFs.addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen();
+      }
+    });
+
+    function showRunningUI() {
+      elTitle.style.opacity = '0';
+      elSubtitle.style.opacity = '0';
+      setTimeout(() => {
+        elTitle.style.display = 'none';
+        elSubtitle.style.display = 'none';
+      }, 600);
+      elPhase.style.opacity = '1';
+      elTimer.style.opacity = '1';
+      elRound.style.opacity = '1';
+      btnStart.classList.add('hidden');
+      btnPause.classList.remove('hidden');
+      btnReset.classList.remove('hidden');
+    }
+
+    function showIdleUI() {
+      elTitle.style.display = '';
+      elTitle.style.opacity = '1';
+      elSubtitle.style.display = '';
+      elSubtitle.style.opacity = '1';
+      elPhase.style.opacity = '0';
+      elTimer.style.opacity = '0';
+      elRound.style.opacity = '0';
+      elCompletion.classList.remove('show');
+      btnStart.classList.remove('hidden');
+      btnPause.classList.add('hidden');
+      btnReset.classList.add('hidden');
+      btnPause.textContent = 'Pause';
+    }
+
+    function showCompletionUI() {
+      elPhase.textContent = 'Complete';
+      elTimer.style.opacity = '0';
+      elRound.style.opacity = '0';
+      btnPause.classList.add('hidden');
+      elCompletion.classList.add('show');
+      btnReset.textContent = 'Restart';
+    }
+
+    function updateUI() {
+      if (state.completed) {
+        showCompletionUI();
+        return;
+      }
+      if (!state.running) return;
+
+      const phase = PHASES[state.phaseIndex];
+      elPhase.textContent = phase.name;
+      const remaining = Math.ceil(phase.duration - state.phaseElapsed);
+      elTimer.textContent = remaining;
+      elRound.textContent = `${state.round} / ${TOTAL_ROUNDS}`;
+    }
+
+    function resetState() {
+      state.running = false;
+      state.paused = false;
+      state.completed = false;
+      state.round = 1;
+      state.phaseIndex = 0;
+      state.phaseElapsed = 0;
+      state.breathValue = 0;
+      state.lastTimestamp = null;
+    }
+
+    btnStart.addEventListener('click', () => {
+      resetState();
+      state.running = true;
+      showRunningUI();
+    });
+
+    btnPause.addEventListener('click', () => {
+      state.paused = !state.paused;
+      btnPause.textContent = state.paused ? 'Resume' : 'Pause';
+      if (!state.paused) state.lastTimestamp = null;
+    });
+
+    btnReset.addEventListener('click', () => {
+      resetState();
+      showIdleUI();
+    });
+
+    // ── Render Loop ──
+    const startTime = performance.now();
+    let targetBreath = 0;
+
+    function frame(timestamp) {
+      // Tick breathing
+      if (state.running && !state.paused && !state.completed) {
+        const dt = state.lastTimestamp ? (timestamp - state.lastTimestamp) / 1000 : 0;
+        state.lastTimestamp = timestamp;
+        tick(dt);
+      }
+
+      // Smooth breath value for shader (lerp for completion ease-out)
+      targetBreath = state.breathValue;
+      if (state.completed) targetBreath = 0;
+
+      updateUI();
+
+      // Render
+      const time = (timestamp - startTime) / 1000;
+      gl.uniform1f(uTime, time);
+      gl.uniform1f(uBreath, state.completed
+        ? state.breathValue * 0.95 + targetBreath * 0.05  // ease out
+        : state.breathValue);
+      gl.uniform2f(uRes, canvas.width, canvas.height);
+      gl.uniform1f(uDark, isDark ? 1.0 : 0.0);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+      // Ease breath to 0 on completion
+      if (state.completed) {
+        state.breathValue += (0 - state.breathValue) * 0.02;
+      }
+
+      requestAnimationFrame(frame);
+    }
+
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>
