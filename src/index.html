@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Breathe System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <!-- Three.js canvas -->
+  <canvas class="webgl"></canvas>
+
+  <!-- UI Overlay -->
+  <div id="ui">
+    <header>
+      <span class="brand">Breathe System</span>
+      <div class="header-actions">
+        <button id="palette-toggle" title="Change visual" aria-label="Change visual theme">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="21.17" y1="8" x2="12" y2="8"/><line x1="3.95" y1="6.06" x2="8.54" y2="14"/><line x1="10.88" y1="21.94" x2="15.46" y2="14"/></svg>
+        </button>
+        <button class="icon-btn" id="theme-toggle" title="Toggle dark mode" aria-label="Toggle dark mode">
+          <svg id="theme-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </button>
+        <button class="icon-btn" id="fs-toggle" title="Fullscreen" aria-label="Toggle fullscreen">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <!-- Idle -->
+      <div id="idle">
+        <div id="idle-title">Nervous System Reset</div>
+        <div id="idle-sub">Longer exhale tells your body<br>the danger has passed</div>
+        <div class="proto-row">
+          <div class="proto-item"><span class="proto-num">4</span><span class="proto-label">Inhale</span></div>
+          <div class="proto-item"><span class="proto-num">2</span><span class="proto-label">Hold</span></div>
+          <div class="proto-item"><span class="proto-num">6</span><span class="proto-label">Exhale</span></div>
+        </div>
+        <button class="btn-begin" id="btn-start">Begin</button>
+      </div>
+
+      <!-- Session -->
+      <div id="session">
+        <div id="phase">Inhale</div>
+        <div id="meta">Phase 01 — 1 of 10</div>
+        <div id="timer">04</div>
+      </div>
+
+      <!-- Completion -->
+      <div id="completion">
+        <div id="complete-title">Complete</div>
+        <div id="complete-sub">Take a moment before returning</div>
+        <div id="complete-timer">00</div>
+      </div>
+    </main>
+
+    <footer>
+      <div id="protocol">
+        <div class="proto-item" id="pi-0"><span class="proto-num" id="pn-0">4</span><span class="proto-label" id="pl-0">Inhale</span></div>
+        <div class="proto-item" id="pi-1"><span class="proto-num" id="pn-1">2</span><span class="proto-label" id="pl-1">Hold</span></div>
+        <div class="proto-item" id="pi-2"><span class="proto-num" id="pn-2">6</span><span class="proto-label" id="pl-2">Exhale</span></div>
+      </div>
+      <div id="bottom-controls">
+        <button class="ctrl-btn" id="btn-pause" title="Pause">
+          <svg id="pause-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="5" width="3" height="14" rx="1"/><rect x="14" y="5" width="3" height="14" rx="1"/></svg>
+        </button>
+        <button class="ctrl-btn ctrl-sm" id="btn-stop" title="Stop">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
+        </button>
+        <div id="progress-arc">
+          <svg viewBox="0 0 36 36">
+            <circle class="track" cx="18" cy="18" r="15.5"/>
+            <circle class="fill" id="progress-ring" cx="18" cy="18" r="15.5" stroke-dasharray="97.39" stroke-dashoffset="97.39"/>
+          </svg>
+        </div>
+      </div>
+    </footer>
+
+    <!-- Theme picker (right edge, vertical swatches) -->
+    <div id="theme-picker"></div>
+  </div>
+
+  <script type="module" src="./script.js"></script>
+</body>
+</html>
