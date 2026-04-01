@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#F5F2ED"/>
+  <circle cx="600" cy="315" r="250" fill="none" stroke="#8A9A8F" stroke-opacity="0.08" stroke-width="200" filter="url(#blur)"/>
+  <defs><filter id="blur"><feGaussianBlur stdDeviation="60"/></filter></defs>
+  <text x="600" y="220" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="400" letter-spacing="3" fill="#B4B4A6">BREATHE SYSTEM</text>
+  <text x="600" y="290" text-anchor="middle" font-family="system-ui,sans-serif" font-size="48" font-weight="200" fill="#333333">Nervous System Reset</text>
+  <text x="600" y="330" text-anchor="middle" font-family="monospace" font-size="13" font-weight="300" letter-spacing="2" fill="#8A9A8F">LONGER EXHALE TELLS YOUR BODY THE DANGER HAS PASSED</text>
+  <text x="480" y="420" text-anchor="middle" font-family="system-ui,sans-serif" font-size="36" font-weight="200" fill="#333333">4</text>
+  <text x="480" y="445" text-anchor="middle" font-family="monospace" font-size="10" letter-spacing="2" fill="#B4B4A6">INHALE</text>
+  <text x="600" y="420" text-anchor="middle" font-family="system-ui,sans-serif" font-size="36" font-weight="200" fill="#333333">2</text>
+  <text x="600" y="445" text-anchor="middle" font-family="monospace" font-size="10" letter-spacing="2" fill="#B4B4A6">HOLD</text>
+  <text x="720" y="420" text-anchor="middle" font-family="system-ui,sans-serif" font-size="36" font-weight="200" fill="#333333">6</text>
+  <text x="720" y="445" text-anchor="middle" font-family="monospace" font-size="10" letter-spacing="2" fill="#B4B4A6">EXHALE</text>
+</svg>
